@@ -1,29 +1,25 @@
 import json
+import pandas as pd
 
 import duckdb as db
 from structlog import get_logger
 
 logger = get_logger(__name__)
 
-CLEAN_DATA_PATH = "outputs/clean_data"
 
-
-def transform_claims(connection: db.DuckDBPyConnection):
+def transform_claims(connection: db.DuckDBPyConnection) -> pd.DataFrame:
     with open("sql/transformations/int_claims.sql", "r") as f:
         sql = f.read()
         df = connection.sql(sql).to_df()
-        df.to_parquet(
-            f"{CLEAN_DATA_PATH}/claims_data.parquet",
-            partition_cols=["company_ein", "claim_type", "service_date"],
-        )
+        return df
 
 
-def transform_employees(connection: db.DuckDBPyConnection):
+def transform_employees(connection: db.DuckDBPyConnection) -> tuple[pd.DataFrame, pd.DataFrame]:
     with open("sql/transformations/int_employees.sql", "r") as f:
         sql = f.read()
 
         df = connection.sql(sql).to_df()
-        logger.info(f"Pre Proceesed {df.shape[0]} rows and {df.shape[1]} columns")
+        logger.info(f"Pre Processed {df.shape[0]} rows and {df.shape[1]} columns")
 
         # filter out company_names that are not in the lookup
         with open("company_lookup.json", "r") as f:
@@ -38,27 +34,17 @@ def transform_employees(connection: db.DuckDBPyConnection):
                 logger.warning(
                     f"Found {mismatch_data.shape[0]} rows with mismatched company_names"
                 )
-
-                mismatch_data.to_csv("outputs/validation_errors.csv", index=False)
             logger.info(
                 f"Filtered {valid_data.shape[0]} rows and {valid_data.shape[1]} columns"
             )
-            valid_data.to_parquet(
-                f"{CLEAN_DATA_PATH}/employees_data.parquet",
-                partition_cols=["company_ein", "start_date"],
-            )
-
-            return valid_data
+            return valid_data, mismatch_data
 
 
-def transform_plans(connection: db.DuckDBPyConnection):
+def transform_plans(connection: db.DuckDBPyConnection) -> pd.DataFrame:
     with open("sql/transformations/int_plans.sql", "r") as f:
         sql = f.read()
         df = connection.sql(sql).to_df()
-        df.to_parquet(
-            f"{CLEAN_DATA_PATH}/plans_data.parquet",
-            partition_cols=["company_ein", "plan_type", "start_date"],
-        )
+        return df
 
 
 # def transform_companies() -> pd.DataFrame:

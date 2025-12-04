@@ -1,22 +1,35 @@
-with employee_counts as (
-select
-	company_ein,
-	count(distinct email) as observed
-from
-	employees
-group by
-	1)
+WITH expected_counts AS (
+    SELECT '11-1111111' AS company_ein, 10 AS expected
+    UNION ALL
+    SELECT '22-2222222' AS company_ein, 20 AS expected
+    UNION ALL
+    SELECT '33-3333333' AS company_ein, 50 AS expected
+),
 
-select
-	*,
-	10 as expected,
-	Round((observed-expected)/ expected * 100,2) as pct_difference,
-	case
-		when
-pct_difference<20 then 'Low'
-when pct_difference between 20 and 50 then 'Medium'
-when pct_difference between 50 and 100 then 'High'
-when pct_difference>100 then 'Critical'
-	end as serverity
-from
-	employee_counts
+employee_counts AS (
+    SELECT
+        company_ein,
+        COUNT(DISTINCT email) AS observed
+    FROM
+        employees
+    GROUP BY
+        company_ein
+)
+
+SELECT
+    e.company_ein as company_ein,
+    ec.expected,
+    COALESCE(e.observed, 0) AS observed,
+    ROUND((COALESCE(e.observed, 0) - ec.expected) * 100.0 / ec.expected, 2) AS pct_diff,
+    CASE
+        WHEN ROUND((COALESCE(e.observed, 0) - ec.expected) * 100.0 / ec.expected, 2) < 20 THEN 'Low'
+        WHEN ROUND((COALESCE(e.observed, 0) - ec.expected) * 100.0 / ec.expected, 2) BETWEEN 20 AND 50 THEN 'Medium'
+        WHEN ROUND((COALESCE(e.observed, 0) - ec.expected) * 100.0 / ec.expected, 2) BETWEEN 50 AND 100 THEN 'High'
+        ELSE 'Critical'
+    END AS severity
+FROM
+    expected_counts ec
+LEFT JOIN
+    employee_counts e ON ec.company_ein = e.company_ein
+ORDER BY
+    company_ein;

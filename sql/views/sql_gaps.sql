@@ -1,29 +1,42 @@
+WITH stitched_plans AS (
+    SELECT
+        p.company_ein,
+        p.plan_type,
+        MIN(p.start_date) AS start_date,
+        MAX(p.end_date) AS end_date
+    FROM
+        plans p
 
-with lagged_plan_dates as (
+    GROUP BY
+        p.company_ein, p.plan_type
+),
+
+plan_gaps AS (
+    SELECT
+        s.company_ein,
+        s.plan_type,
+        s.start_date,
+        s.end_date,
+        LAG(s.end_date, 1) OVER (PARTITION BY s.company_ein, s.plan_type ORDER BY s.start_date) AS previous_plan_end_date,
+        LAG(p.carrier_name, 1) OVER (PARTITION BY s.company_ein, s.plan_type ORDER BY s.start_date) AS previous_carrier,
+        p.carrier_name AS next_carrier
+    FROM
+        stitched_plans s
+    LEFT JOIN
+        plans p ON s.company_ein = p.company_ein AND s.plan_type = p.plan_type AND s.start_date = p.start_date
+
+)
+
 SELECT
-	company_ein,
-	plan_type,
-	carrier_name,
-	start_date,
-	end_date,
-	lag(end_date, 1, null) over(partition by company_ein, plan_type order by start_date) as previous_plan_end_date,
-	lag(carrier_name, 1, null) over (partition by company_ein,
-	plan_type
-order by
-	start_date asc) as previous_carrier
+    company_ein,
+    previous_plan_end_date AS gap_start,
+    start_date AS gap_end,
+    DATE_DIFF('day', previous_plan_end_date, start_date) AS gap_length_days,
+    previous_carrier,
+    next_carrier
 FROM
-	plans
-order by
-	company_ein,
-	plan_type,
-	start_date asc)
-            select
-	company_ein,
-	end_date as gap_start,
-	start_date as gap_end,
-	datediff('day', date(previous_plan_end_date), date(start_date)) as gap_length_days,
-	carrier_name as next_carrier,
-from
-	lagged_plan_dates
-where
-	gap_length_days > 7
+    plan_gaps
+WHERE
+    DATE_DIFF('day', previous_plan_end_date, start_date) > 7
+ORDER BY
+    company_ein, plan_type, gap_start;

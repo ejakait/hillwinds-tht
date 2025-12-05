@@ -1,7 +1,7 @@
 import json
-import pandas as pd
 
 import duckdb as db
+import pandas as pd
 from structlog import get_logger
 
 logger = get_logger(__name__)
@@ -14,7 +14,9 @@ def transform_claims(connection: db.DuckDBPyConnection) -> pd.DataFrame:
         return df
 
 
-def transform_employees(connection: db.DuckDBPyConnection) -> tuple[pd.DataFrame, pd.DataFrame]:
+def transform_employees(
+    connection: db.DuckDBPyConnection,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     with open("sql/transformations/int_employees.sql", "r") as f:
         sql = f.read()
 
@@ -45,17 +47,3 @@ def transform_plans(connection: db.DuckDBPyConnection) -> pd.DataFrame:
         sql = f.read()
         df = connection.sql(sql).to_df()
         return df
-
-
-# def transform_companies() -> pd.DataFrame:
-#     with open("company_lookup.json", "r") as f:
-#         dict_company_lookup = json.load(f)
-#         transformed_data = []
-#         for company_name, company_ein in dict_company_lookup.items():
-#             transformed_data.append(
-#                 {
-#                     "company_ein": company_ein,
-#                     "company_name": company_name,
-#                 }
-#             )
-#         return pd.DataFrame(transformed_data)

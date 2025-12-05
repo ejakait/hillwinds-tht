@@ -27,10 +27,10 @@
   - Each model would include metadata columns like `dbt_inserted_at` (timestamp of insertion), `dbt_updated_at` (timestamp of last update), and possibly `dbt_job_id` for traceability.
   - For Slowly Changing Dimensions (SCD Type 2), `dbt_valid_from` and `dbt_valid_to` would track effective date ranges for record versions.
 - **Safe Model Deprecation Strategy:**
-  1.  **Communicate:** Inform downstream users of the impending deprecation, providing a clear timeline and alternative models.
-  2.  **Soft Deprecation in Code:** Mark the deprecated model with a `deprecated` tag in `schema.yml`, and update any direct `ref()` calls to point to the new model, leaving the old `ref()` for a transition period if possible.
-  3.  **Monitor Usage:** Track queries against the deprecated model to ensure usage drops to zero.
-  4.  **Hard Deprecation:** Once usage ceases, remove the model definition from the dbt project and drop the corresponding table(s) from the database.
+  - **Communicate:** Inform downstream users of the impending deprecation, providing a clear timeline and alternative models.
+  - **Soft Deprecation in Code:** Mark the deprecated model with a `deprecated` tag in `schema.yml`, and update any direct `ref()` calls to point to the new model, leaving the old `ref()` for a transition period if possible.
+  - **Monitor Usage:** Track queries against the deprecated model to ensure usage drops to zero.
+  - **Hard Deprecation:** Once usage ceases, remove the model definition from the dbt project and drop the corresponding table(s) from the database.
 
 ## 2) Deep Debugging & Incident Response
 
